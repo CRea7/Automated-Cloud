@@ -3,8 +3,8 @@ import boto3
 from botocore.exceptions import ClientError
 
 def main():
-    security_group_id = create_security()
-    create_instance(security_group_id)
+    #security_group_id = create_security()
+    create_instance()
 
 def create_security():
 
@@ -38,19 +38,24 @@ def create_security():
     return security_group_id
 
 #creates instance using security group that was previously created and my key pair
-#KeyPair = CRea_KeyPair.pem
-def create_instance(security_group_id):
+def create_instance():
 
     ec2 = boto3.resource('ec2')
     instance = ec2.create_instances(
         ImageId='ami-047bb4163c506cd98',
         MinCount=1,
         MaxCount=1,
-        SecurityGroupIds=[security_group_id],
-        #KeyName = KeyPair,   #key pair located in dcuments
+        UserData = """ #!/bin/bash
+                       sudo yum update -y
+                       sudo yum install -y httpd
+                       sudo chkconfig httpd on
+                       sudo /etc/init.d/httpd start
+                       """,
+        SecurityGroupIds=['sg-08c2e007a2f47781e'],
+        KeyName = 'CRea_KeyPair',   #key pair located in dcuments
         InstanceType='t2.micro')
     print (instance[0].id)
-
-
+    
+# ssh -t -i ~/Documents/CRea_KeyPair.pem ec2-user@52.19.206.250
 if __name__ == '__main__':
     main()
