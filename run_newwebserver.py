@@ -10,7 +10,8 @@ def create_security():
 
     ec2 = boto3.client('ec2')
     response = ec2.describe_vpcs()
-    vpc_id = 'vpc-05ec96ec41ae536da'
+    vpc_id = response.get('Vpcs', [{}])[0].get('VpcId', '')
+
 
     try:
         response = ec2.create_security_group(GroupName='Assignment Group',
