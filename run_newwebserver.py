@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 import sys
 import boto3
+import time
 from botocore.exceptions import ClientError
 
 def main():
     #security_group_id = create_security()
-    create_instance()
-    create_bucket()
+    #create_instance()
+    bucket_name = create_bucket()
+    put_image_bucket(bucket_name)
 
 def create_security():
 
@@ -37,6 +39,8 @@ def create_security():
     #print('Ingress Successfully Set %s' % data)
     except ClientError as e:
         print(e)
+    time.sleep(60)
+    print('sleep over')
     return security_group_id
 
 #creates instance using security group that was previously created and my key pair
@@ -66,16 +70,14 @@ def create_bucket():
             print (response)
         except Exception as error:
             print (error)
+    return bucket_name
 
-def put_image_bucket():
-    s3 = boto3.resource("s3")
-    bucket_name = 'Assignment bucket'
-    #object_name = /Pictures/icon.png
-    try:
-        response = s3.Object(bucket_name, object_name).put(Body=open(object_name, 'rb'))
-        print (response)
-    except Exception as error:
-        print (error)
+def put_image_bucket(bucket_name):
+    s3 = boto3.client('s3')
+    bucket = bucket_name
+    file_name = './icon.png'
+    key_name = 'icon.png'
+    s3.upload_file(file_name, bucket, key_name)
 
 # ssh -t -i ~/Documents/CRea_KeyPair.pem ec2-user@52.19.206.250
 if __name__ == '__main__':
