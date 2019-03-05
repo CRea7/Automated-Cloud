@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
+import sys
 import boto3
 from botocore.exceptions import ClientError
 
 def main():
     #security_group_id = create_security()
     create_instance()
+    create_bucket()
 
 def create_security():
 
@@ -50,12 +52,31 @@ def create_instance():
                        sudo yum install -y httpd
                        sudo chkconfig httpd on
                        sudo /etc/init.d/httpd start
-                       """,
+                       """,#installs apache web server thing
         SecurityGroupIds=['sg-08c2e007a2f47781e'],
         KeyName = 'CRea_KeyPair',   #key pair located in dcuments
         InstanceType='t2.micro')
     print (instance[0].id)
-    
+
+def create_bucket():
+    s3 = boto3.resource("s3")
+    for bucket_name in sys.argv[1:]:
+        try:
+            response = s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+            print (response)
+        except Exception as error:
+            print (error)
+
+def put_image_bucket():
+    s3 = boto3.resource("s3")
+    bucket_name = 'Assignment bucket'
+    #object_name = /Pictures/icon.png
+    try:
+        response = s3.Object(bucket_name, object_name).put(Body=open(object_name, 'rb'))
+        print (response)
+    except Exception as error:
+        print (error)
+
 # ssh -t -i ~/Documents/CRea_KeyPair.pem ec2-user@52.19.206.250
 if __name__ == '__main__':
     main()
