@@ -2,16 +2,17 @@
 import sys
 import boto3
 import time
+import subprocess
 from botocore.exceptions import ClientError
 
 def main():
     #security_group_id = create_security()
-    #create_instance()
-    print('please wait 60 seconds')
-    time.sleep(60)
-    print('sleep over')
-    bucket_name = create_bucket()
-    put_image_bucket(bucket_name)
+    instance_id = create_instance()
+    #print('please wait 60 seconds')
+    #time.sleep(60)
+    #print('sleep over')
+    #bucket_name = create_bucket()
+    #put_image_bucket(bucket_name)
 
 def create_security():
 
@@ -62,6 +63,16 @@ def create_instance():
         KeyName = 'CRea_KeyPair',   #key pair located in dcuments
         InstanceType='t2.micro')
     print (instance[0].id)
+    while not instance[0].public_ip_address:
+        try:
+            instance[0].reload()
+            if instance[0].public_ip_address:
+                # Public IP address is available
+                public_ip = instance[0].public_ip_address
+                print(instance[0].public_ip_address)
+
+        except Exception as e:
+            return instance[0].public_ip_address
 
 def create_bucket():
     s3 = boto3.resource("s3")
@@ -79,6 +90,11 @@ def put_image_bucket(bucket_name):
     file_name = './icon.png'
     key_name = 'icon.png'
     s3.upload_file(file_name, bucket, key_name)
+
+def ssh_onto_server():
+    ssh_command = "ssh -tt -o StrictHostKeyChecking=no -i" + key_location[: -1] + "ec2-user@"\
+                  +instance_dns + " sudo ls -a"
+    subprocess.run(ssh_command, check=True, shell=True)
 
 # ssh -t -i ~/Documents/CRea_KeyPair.pem ec2-user@52.19.206.250
 if __name__ == '__main__':
