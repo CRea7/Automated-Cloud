@@ -7,6 +7,9 @@ from botocore.exceptions import ClientError
 def main():
     #security_group_id = create_security()
     #create_instance()
+    print('please wait 60 seconds')
+    time.sleep(60)
+    print('sleep over')
     bucket_name = create_bucket()
     put_image_bucket(bucket_name)
 
@@ -39,8 +42,6 @@ def create_security():
     #print('Ingress Successfully Set %s' % data)
     except ClientError as e:
         print(e)
-    time.sleep(60)
-    print('sleep over')
     return security_group_id
 
 #creates instance using security group that was previously created and my key pair
