@@ -3,6 +3,7 @@ import sys
 import boto3
 import time
 import subprocess
+import check_webserver
 from botocore.exceptions import ClientError
 
 def main():
@@ -12,10 +13,10 @@ def main():
     image_url = put_image_bucket(bucket_name)
     print(image_url)
     instance_ip = create_instance(image_url)
-    # print('please wait 60 seconds')
-    # time.sleep(60)
-    # print('sleep over')
-    #ssh_onto_server(instance_ip)
+    print('please wait 60 seconds')
+    time.sleep(120)
+    print('sleep over')
+    ssh_onto_server(instance_ip)
 
 def create_security():
 
@@ -62,11 +63,11 @@ def create_instance(image_url):
         UserData = """ #!/bin/bash
                        sudo yum update -y
                        sudo yum install -y httpd
+                       sudo yum install python3
                        sudo chkconfig httpd on
                        sudo /etc/init.d/httpd start
                        echo "<h2>Test page</h2>Instance ID: " > /var/www/html/index.html
                        curl --silent http://169.254.169.254/latest/meta-data/instance-id/ >> /var/www/html/index.html
-                       echo "<br>Availability zone: " >> /var/www/html/index.html
                        curl --silent http://169.254.169.254/latest/meta-data/placement/availability-zone/ >> /var/www/html/index.html
                        echo "<br>IP address: " >> /var/www/html/index.html
                        curl --silent http://169.254.169.254/latest/meta-data/public-ipv4 >> /var/www/html/index.html
@@ -108,7 +109,10 @@ def put_image_bucket(bucket_name):
 def ssh_onto_server(instance_ip):
     print(instance_ip)
     ssh_command = "ssh -tt -o StrictHostKeyChecking=no -i ~/Documents/CRea_KeyPair.pem ec2-user@"\
-                  +instance_ip + " sudo ls -a"
+                  +instance_ip + " python3 check_webserver"
+    scp = "scp -i ~/Documents/CRea_KeyPair.pem check_webserver.py ec2-user@" +instance_ip +":."
+    subprocess.run(scp, shell=True)
+    #subprocess.run("python3 check_webserver")
     subprocess.run(ssh_command, check=True, shell=True)
 
 # ssh -t -i ~/Documents/CRea_KeyPair.pem ec2-user@52.19.206.250
