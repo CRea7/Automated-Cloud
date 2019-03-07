@@ -7,12 +7,15 @@ from botocore.exceptions import ClientError
 
 def main():
     #security_group_id = create_security()
-    instance_id = create_instance()
-    #print('please wait 60 seconds')
-    #time.sleep(60)
-    #print('sleep over')
-    #bucket_name = create_bucket()
-    #put_image_bucket(bucket_name)
+    bucket_name = create_bucket()
+    bucket_name = bucket_name.lower()
+    image_url = put_image_bucket(bucket_name)
+    print(image_url)
+    instance_ip = create_instance(image_url)
+    # print('please wait 60 seconds')
+    # time.sleep(60)
+    # print('sleep over')
+    #ssh_onto_server(instance_ip)
 
 def create_security():
 
@@ -46,22 +49,30 @@ def create_security():
     return security_group_id
 
 #creates instance using security group that was previously created and my key pair
-def create_instance():
+def create_instance(image_url):
 
     ec2 = boto3.resource('ec2')
     instance = ec2.create_instances(
         ImageId='ami-047bb4163c506cd98',
         MinCount=1,
         MaxCount=1,
+        SecurityGroupIds=['sg-08c2e007a2f47781e'],
+        KeyName = 'CRea_KeyPair',   #key pair located in dcuments
+        InstanceType='t2.micro',
         UserData = """ #!/bin/bash
                        sudo yum update -y
                        sudo yum install -y httpd
                        sudo chkconfig httpd on
                        sudo /etc/init.d/httpd start
-                       """,#installs apache web server thing
-        SecurityGroupIds=['sg-08c2e007a2f47781e'],
-        KeyName = 'CRea_KeyPair',   #key pair located in dcuments
-        InstanceType='t2.micro')
+                       echo "<h2>Test page</h2>Instance ID: " > /var/www/html/index.html
+                       curl --silent http://169.254.169.254/latest/meta-data/instance-id/ >> /var/www/html/index.html
+                       echo "<br>Availability zone: " >> /var/www/html/index.html
+                       curl --silent http://169.254.169.254/latest/meta-data/placement/availability-zone/ >> /var/www/html/index.html
+                       echo "<br>IP address: " >> /var/www/html/index.html
+                       curl --silent http://169.254.169.254/latest/meta-data/public-ipv4 >> /var/www/html/index.html
+                       echo "<hr>Here is an image that I have stored on S3: <br>" >> /var/www/html/index.html
+                       echo "<img src="%s">" >> /var/www/html/index.html
+                       """ % image_url)#installs apache web server thing
     print (instance[0].id)
     while not instance[0].public_ip_address:
         try:
@@ -70,30 +81,34 @@ def create_instance():
                 # Public IP address is available
                 public_ip = instance[0].public_ip_address
                 print(instance[0].public_ip_address)
-
+                return instance[0].public_ip_address
         except Exception as e:
-            return instance[0].public_ip_address
+            print("Error on create")
 
 def create_bucket():
     s3 = boto3.resource("s3")
-    for bucket_name in sys.argv[1:]:
-        try:
-            response = s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
-            print (response)
-        except Exception as error:
-            print (error)
-    return bucket_name
+    bucket_name = input("Enter bucket name: ")
+    try:
+        response = s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={'LocationConstraint': 'eu-west-1'})
+        print (response)
+        return bucket_name
+    except Exception as error:
+        print (error)
+
 
 def put_image_bucket(bucket_name):
     s3 = boto3.client('s3')
     bucket = bucket_name
     file_name = './icon.png'
     key_name = 'icon.png'
-    s3.upload_file(file_name, bucket, key_name)
+    s3.upload_file(file_name, bucket, key_name, ExtraArgs={'ACL': 'public-read'})
+    image_url = "https://s3-eu-west-1.amazonaws.com/" + bucket_name + "/" + key_name
+    return image_url
 
-def ssh_onto_server():
-    ssh_command = "ssh -tt -o StrictHostKeyChecking=no -i" + key_location[: -1] + "ec2-user@"\
-                  +instance_dns + " sudo ls -a"
+def ssh_onto_server(instance_ip):
+    print(instance_ip)
+    ssh_command = "ssh -tt -o StrictHostKeyChecking=no -i ~/Documents/CRea_KeyPair.pem ec2-user@"\
+                  +instance_ip + " sudo ls -a"
     subprocess.run(ssh_command, check=True, shell=True)
 
 # ssh -t -i ~/Documents/CRea_KeyPair.pem ec2-user@52.19.206.250
