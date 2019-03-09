@@ -7,16 +7,16 @@ import check_webserver
 from botocore.exceptions import ClientError
 
 def main():
-    #security_group_id = create_security()
+    security_group_id = create_security()
     bucket_name = create_bucket()
     bucket_name = bucket_name.lower()
     image_url = put_image_bucket(bucket_name)
     print(image_url)
-    instance_ip = create_instance(image_url)
-    print('please wait 60 seconds')
-    time.sleep(120)
-    print('sleep over')
-    ssh_onto_server(instance_ip)
+    instance_ip = create_instance(image_url,security_group_id)
+    #print('please wait 60 seconds')
+    #time.sleep(120)
+    #print('sleep over')
+    #ssh_onto_server(instance_ip)
 
 def create_security():
 
@@ -50,14 +50,14 @@ def create_security():
     return security_group_id
 
 #creates instance using security group that was previously created and my key pair
-def create_instance(image_url):
+def create_instance(image_url,security_group_id):
 
     ec2 = boto3.resource('ec2')
     instance = ec2.create_instances(
         ImageId='ami-047bb4163c506cd98',
         MinCount=1,
         MaxCount=1,
-        SecurityGroupIds=['sg-08c2e007a2f47781e'],
+        SecurityGroupIds=[security_group_id],
         KeyName = 'CRea_KeyPair',   #key pair located in dcuments
         InstanceType='t2.micro',
         UserData = """ #!/bin/bash
